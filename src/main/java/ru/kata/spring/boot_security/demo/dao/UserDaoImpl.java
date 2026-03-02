@@ -25,10 +25,10 @@ public class UserDaoImpl implements UserDao {
     }
 
     @Override
-    public User findByUsername(String username) {
+    public User findByEmail(String email) {
         TypedQuery<User> query = entityManager.createQuery(
-                "SELECT u FROM User u LEFT JOIN FETCH u.roles WHERE u.username = :username", User.class);
-        query.setParameter("username", username);
+                "SELECT u FROM User u LEFT JOIN FETCH u.roles WHERE u.email = :email", User.class);
+        query.setParameter("email", email);
         return query.getResultList().stream().findFirst().orElse(null);
     }
 
@@ -51,10 +51,10 @@ public class UserDaoImpl implements UserDao {
     }
 
     @Override
-    public boolean existsByUsername(String username) {
+    public boolean existsByEmail(String email) {
         TypedQuery<Long> query = entityManager.createQuery(
-                "SELECT COUNT(u) FROM User u WHERE u.username = :username", Long.class);
-        query.setParameter("username", username);
+                "SELECT COUNT(u) FROM User u WHERE u.email = :email", Long.class);
+        query.setParameter("email", email);
         return query.getSingleResult() > 0;
     }
 }

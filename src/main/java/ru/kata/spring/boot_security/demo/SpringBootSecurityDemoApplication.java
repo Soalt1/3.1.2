@@ -26,10 +26,10 @@ public class SpringBootSecurityDemoApplication {
 
             // Создаем тестовых пользователей, если их нет
             try {
-                userService.findByUsername("admin");
+                userService.findByEmail("admin@mail.ru");
             } catch (RuntimeException e) {
                 // Создаем админа
-                User admin = new User("admin", "admin", "admin@example.com", "Admin", "Adminov", 30);
+                User admin = new User("admin", "admin", 35, "admin@mail.ru", "admin");
                 Set<Role> adminRoles = new HashSet<>();
                 adminRoles.add(roleService.findByName("ROLE_ADMIN"));
                 adminRoles.add(roleService.findByName("ROLE_USER"));
@@ -38,10 +38,10 @@ public class SpringBootSecurityDemoApplication {
             }
 
             try {
-                userService.findByUsername("user");
+                userService.findByEmail("user@mail.ru");
             } catch (RuntimeException e) {
                 // Создаем обычного пользователя
-                User user = new User("user", "user", "user@example.com", "User", "Userov", 25);
+                User user = new User("user", "user", 30, "user@mail.ru", "user");
                 Set<Role> userRoles = new HashSet<>();
                 userRoles.add(roleService.findByName("ROLE_USER"));
                 user.setRoles(userRoles);

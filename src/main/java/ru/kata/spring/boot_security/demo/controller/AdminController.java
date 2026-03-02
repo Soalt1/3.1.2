@@ -25,16 +25,12 @@ public class AdminController {
 
     @GetMapping("/login")
     public ModelAndView loginPage() {
-        ModelAndView modelAndView = new ModelAndView();
-        modelAndView.setViewName("login");
-        return modelAndView;
+        return new ModelAndView("login");
     }
 
     @GetMapping("/")
     public ModelAndView rootRedirect() {
-        ModelAndView modelAndView = new ModelAndView();
-        modelAndView.setViewName("redirect:/login");
-        return modelAndView;
+        return new ModelAndView("redirect:/login");
     }
 
     @GetMapping("/admin")
@@ -54,10 +50,7 @@ public class AdminController {
         }
         user.setRoles(roleService.findByIds(roleIds));
         userService.save(user);
-
-        ModelAndView modelAndView = new ModelAndView();
-        modelAndView.setViewName("redirect:/admin");
-        return modelAndView;
+        return new ModelAndView("redirect:/admin");
     }
 
     @PostMapping("/admin/update")
@@ -68,18 +61,12 @@ public class AdminController {
         }
         user.setRoles(roleService.findByIds(roleIds));
         userService.update(user);
-
-        ModelAndView modelAndView = new ModelAndView();
-        modelAndView.setViewName("redirect:/admin");
-        return modelAndView;
+        return new ModelAndView("redirect:/admin");
     }
 
     @PostMapping("/admin/delete")
     public ModelAndView deleteUser(@RequestParam("id") Long id) {
         userService.deleteById(id);
-
-        ModelAndView modelAndView = new ModelAndView();
-        modelAndView.setViewName("redirect:/admin");
-        return modelAndView;
+        return new ModelAndView("redirect:/admin");
     }
 }

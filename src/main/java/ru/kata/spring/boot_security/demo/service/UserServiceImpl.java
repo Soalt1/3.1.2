@@ -38,10 +38,10 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
-    public User findByUsername(String username) {
-        User user = userDao.findByUsername(username);
+    public User findByEmail(String email) {
+        User user = userDao.findByEmail(email);
         if (user == null) {
-            throw new RuntimeException("User not found with username: " + username);
+            throw new RuntimeException("User not found with email: " + email);
         }
         return user;
     }
@@ -49,8 +49,8 @@ public class UserServiceImpl implements UserService {
     @Override
     @Transactional
     public User save(User user) {
-        if (userDao.existsByUsername(user.getUsername())) {
-            throw new RuntimeException("Username already exists");
+        if (userDao.existsByEmail(user.getEmail())) {
+            throw new RuntimeException("Email already exists");
         }
         user.setPassword(passwordEncoder.encode(user.getPassword()));
         userDao.save(user);
@@ -62,9 +62,9 @@ public class UserServiceImpl implements UserService {
     public User update(User user) {
         User existingUser = findById(user.getId());
 
-        if (!existingUser.getUsername().equals(user.getUsername()) &&
-                userDao.existsByUsername(user.getUsername())) {
-            throw new RuntimeException("Username already exists");
+        if (!existingUser.getEmail().equals(user.getEmail()) &&
+                userDao.existsByEmail(user.getEmail())) {
+            throw new RuntimeException("Email already exists");
         }
 
         if (user.getPassword() != null && !user.getPassword().isEmpty()) {
