@@ -1,14 +1,13 @@
 package ru.kata.spring.boot_security.demo.controller;
 
-
 import ru.kata.spring.boot_security.demo.model.User;
 import ru.kata.spring.boot_security.demo.service.RoleService;
 import ru.kata.spring.boot_security.demo.service.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.stereotype.Controller;
-import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.servlet.ModelAndView;
 import java.util.HashSet;
 import java.util.Set;
 
@@ -25,48 +24,62 @@ public class AdminController {
     }
 
     @GetMapping("/login")
-    public String loginPage() {
-        return "login";
+    public ModelAndView loginPage() {
+        ModelAndView modelAndView = new ModelAndView();
+        modelAndView.setViewName("login");
+        return modelAndView;
     }
 
     @GetMapping("/")
-    public String rootRedirect() {
-        return "redirect:/login";
+    public ModelAndView rootRedirect() {
+        ModelAndView modelAndView = new ModelAndView();
+        modelAndView.setViewName("redirect:/login");
+        return modelAndView;
     }
 
     @GetMapping("/admin")
-    public String adminPanel(@AuthenticationPrincipal User currentUser, Model model) {
-        model.addAttribute("users", userService.findAll());
-        model.addAttribute("roles", roleService.findAll());
-        model.addAttribute("currentUser", currentUser);
-        return "admin";
+    public ModelAndView adminPanel(@AuthenticationPrincipal User currentUser) {
+        ModelAndView modelAndView = new ModelAndView("admin");
+        modelAndView.addObject("users", userService.findAll());
+        modelAndView.addObject("roles", roleService.findAll());
+        modelAndView.addObject("currentUser", currentUser);
+        return modelAndView;
     }
 
     @PostMapping("/admin/add")
-    public String addUser(@ModelAttribute User user,
-                          @RequestParam(value = "roleIds", required = false) Set<Long> roleIds) {
+    public ModelAndView addUser(@ModelAttribute User user,
+                                @RequestParam(value = "roleIds", required = false) Set<Long> roleIds) {
         if (roleIds == null) {
             roleIds = new HashSet<>();
         }
         user.setRoles(roleService.findByIds(roleIds));
         userService.save(user);
-        return "redirect:/admin";
+
+        ModelAndView modelAndView = new ModelAndView();
+        modelAndView.setViewName("redirect:/admin");
+        return modelAndView;
     }
 
     @PostMapping("/admin/update")
-    public String updateUser(@ModelAttribute User user,
-                             @RequestParam(value = "roleIds", required = false) Set<Long> roleIds) {
+    public ModelAndView updateUser(@ModelAttribute User user,
+                                   @RequestParam(value = "roleIds", required = false) Set<Long> roleIds) {
         if (roleIds == null) {
             roleIds = new HashSet<>();
         }
         user.setRoles(roleService.findByIds(roleIds));
         userService.update(user);
-        return "redirect:/admin";
+
+        ModelAndView modelAndView = new ModelAndView();
+        modelAndView.setViewName("redirect:/admin");
+        return modelAndView;
     }
 
     @PostMapping("/admin/delete")
-    public String deleteUser(@RequestParam("id") Long id) {
+    public ModelAndView deleteUser(@RequestParam("id") Long id) {
         userService.deleteById(id);
-        return "redirect:/admin";
+
+        ModelAndView modelAndView = new ModelAndView();
+        modelAndView.setViewName("redirect:/admin");
+        return modelAndView;
     }
 }
