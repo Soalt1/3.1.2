@@ -2,6 +2,7 @@
 <html xmlns:th="http://www.thymeleaf.org">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Admin panel</title>
     <style>
         body {
@@ -289,20 +290,23 @@
                 <td th:text="${user.age}"></td>
                 <td th:text="${user.email}"></td>
                 <td th:text="${user.roles}"></td>
-                <td><a href="#" class="btn-edit" onclick="openEditModal(this)"
-                       data-id="${user.id}"
-                       data-firstname="${user.firstName}"
-                       data-lastname="${user.lastName}"
-                       data-age="${user.age}"
-                       data-email="${user.email}"
-                       data-roles="${user.roles}">Edit</a></td>
-                <td><a href="#" class="btn-delete" onclick="openDeleteModal(this)"
-                       data-id="${user.id}"
-                       data-firstname="${user.firstName}"
-                       data-lastname="${user.lastName}"
-                       data-age="${user.age}"
-                       data-email="${user.email}"
-                       data-roles="${user.roles}">Delete</a></td>
+                <td>
+                    <a href="#" class="btn-edit"
+                       th:data-id="${user.id}"
+                       th:data-firstname="${user.firstName}"
+                       th:data-lastname="${user.lastName}"
+                       th:data-age="${user.age}"
+                       th:data-email="${user.email}"
+                       th:data-roles="${user.roles}"
+                       onclick="openEditModal(this)">Edit</a>
+                </td>
+                <td>
+                    <a href="#" class="btn-delete"
+                       th:data-id="${user.id}"
+                       th:data-firstname="${user.firstName}"
+                       th:data-lastname="${user.lastName}"
+                       onclick="openDeleteModal(this)">Delete</a>
+                </td>
             </tr>
             </tbody>
         </table>
@@ -317,7 +321,7 @@
     </div>
 </div>
 
-<!-- МОДАЛЬНОЕ ОКНО ДЛЯ ДОБАВЛЕНИЯ ПОЛЬЗОВАТЕЛЯ (как на скриншоте 4) -->
+<!-- МОДАЛЬНОЕ ОКНО ДЛЯ ДОБАВЛЕНИЯ ПОЛЬЗОВАТЕЛЯ -->
 <div id="addModal" class="modal">
     <div class="modal-content">
         <div class="modal-header">
@@ -327,38 +331,28 @@
 
         <form th:action="@{/admin/add}" method="post">
             <div class="modal-body">
-                <table style="width: 100%; margin-bottom: 20px;">
-                    <thead>
-                    <tr>
-                        <th>First name</th>
-                        <th>Last name</th>
-                    </tr>
-                    </thead>
-                    <tbody>
-                    <tr>
-                        <td><input type="text" name="firstName" style="width: 100%;" placeholder="First name"></td>
-                        <td><input type="text" name="lastName" style="width: 100%;" placeholder="Last name"></td>
-                    </tr>
-                    </tbody>
-                </table>
-
-                <div style="margin-bottom: 10px;">
-                    <strong>Age</strong><br>
-                    <input type="number" name="age" style="width: 100px;" placeholder="Age">
+                <div class="form-group">
+                    <label>First name:</label>
+                    <input type="text" name="firstName" required>
                 </div>
-
-                <div style="margin-bottom: 10px;">
-                    <strong>Email</strong><br>
-                    <input type="email" name="email" style="width: 250px;" placeholder="Email">
+                <div class="form-group">
+                    <label>Last name:</label>
+                    <input type="text" name="lastName" required>
                 </div>
-
-                <div style="margin-bottom: 10px;">
-                    <strong>Password</strong><br>
-                    <input type="password" name="password" style="width: 250px;" placeholder="Password">
+                <div class="form-group">
+                    <label>Age:</label>
+                    <input type="number" name="age" min="1" max="150" required>
                 </div>
-
-                <div style="margin-bottom: 10px;">
-                    <strong>Role</strong><br>
+                <div class="form-group">
+                    <label>Email:</label>
+                    <input type="email" name="email" required>
+                </div>
+                <div class="form-group">
+                    <label>Password:</label>
+                    <input type="password" name="password" required>
+                </div>
+                <div class="form-group">
+                    <label>Role:</label>
                     <div th:each="role : ${roles}">
                         <input type="checkbox" name="roleIds" th:value="${role.id}">
                         <label th:text="${role}"></label>
@@ -373,7 +367,7 @@
     </div>
 </div>
 
-<!-- МОДАЛЬНОЕ ОКНО ДЛЯ РЕДАКТИРОВАНИЯ (как на скриншоте 4) -->
+<!-- МОДАЛЬНОЕ ОКНО ДЛЯ РЕДАКТИРОВАНИЯ -->
 <div id="editModal" class="modal">
     <div class="modal-content">
         <div class="modal-header">
@@ -382,51 +376,34 @@
         </div>
 
         <form th:action="@{/admin/update}" method="post">
+            <!-- ВАЖНО: это поле будет заполнено через JavaScript -->
             <input type="hidden" name="id" id="edit-id">
 
             <div class="modal-body">
-                <table style="width: 100%; margin-bottom: 20px;">
-                    <thead>
-                    <tr>
-                        <th>ID</th>
-                        <th>First name</th>
-                        <th>Last name</th>
-                    </tr>
-                    </thead>
-                    <tbody>
-                    <tr>
-                        <td><input type="text" id="edit-id-display" style="width: 50px;" readonly></td>
-                        <td><input type="text" name="firstName" id="edit-firstName" style="width: 100px;"></td>
-                        <td><input type="text" name="lastName" id="edit-lastName" style="width: 100px;"></td>
-                    </tr>
-                    </tbody>
-                </table>
-
-                <div style="margin-bottom: 10px;">
-                    <strong>ID</strong><br>
-                    <span>2 admin<br>3 user<br>8 111</span>
+                <div class="form-group">
+                    <label>First name:</label>
+                    <input type="text" name="firstName" id="edit-firstName" required>
                 </div>
-
-                <div style="margin-bottom: 10px;">
-                    <strong>Age</strong><br>
-                    <span>3 user<br>8 111</span>
-                    <input type="number" name="age" id="edit-age" style="width: 100px; margin-top: 5px;">
+                <div class="form-group">
+                    <label>Last name:</label>
+                    <input type="text" name="lastName" id="edit-lastName" required>
                 </div>
-
-                <div style="margin-bottom: 10px;">
-                    <strong>Email</strong><br>
-                    <input type="email" name="email" id="edit-email" style="width: 250px;">
+                <div class="form-group">
+                    <label>Age:</label>
+                    <input type="number" name="age" id="edit-age" min="1" max="150" required>
                 </div>
-
-                <div style="margin-bottom: 10px;">
-                    <strong>Password</strong><br>
-                    <input type="password" name="password" id="edit-password" style="width: 250px;" placeholder="...">
+                <div class="form-group">
+                    <label>Email:</label>
+                    <input type="email" name="email" id="edit-email" required>
                 </div>
-
-                <div style="margin-bottom: 10px;">
-                    <strong>Role</strong><br>
+                <div class="form-group">
+                    <label>Password:</label>
+                    <input type="password" name="password" id="edit-password" placeholder="Leave empty to keep current">
+                </div>
+                <div class="form-group">
+                    <label>Role:</label>
                     <div th:each="role : ${roles}">
-                        <input type="checkbox" class="role-checkbox-edit"
+                        <input type="checkbox" class="edit-role-checkbox"
                                name="roleIds" th:value="${role.id}"
                                th:id="'edit_role_' + ${role.id}">
                         <label th:for="'edit_role_' + ${role.id}" th:text="${role}"></label>
@@ -441,7 +418,7 @@
     </div>
 </div>
 
-<!-- МОДАЛЬНОЕ ОКНО ДЛЯ УДАЛЕНИЯ (как на скриншоте 5) -->
+<!-- МОДАЛЬНОЕ ОКНО ДЛЯ УДАЛЕНИЯ -->
 <div id="deleteModal" class="modal">
     <div class="modal-content">
         <div class="modal-header">
@@ -450,30 +427,11 @@
         </div>
 
         <div class="modal-body">
-            <table class="delete-table">
-                <thead>
-                <tr>
-                    <th>ID</th>
-                    <th>First name</th>
-                    <th>Last name</th>
-                </tr>
-                </thead>
-                <tbody>
-                <tr th:each="user : ${users}">
-                    <td th:text="${user.id}"></td>
-                    <td th:text="${user.firstName}"></td>
-                    <td th:text="${user.lastName}"></td>
-                </tr>
-                </tbody>
-            </table>
-
-            <div style="margin-bottom: 10px;">
-                <strong>Role</strong><br>
-                <span th:each="role : ${roles}">- <span th:text="${role}"></span><br></span>
-            </div>
+            <p>Are you sure you want to delete this user?</p>
+            <p><strong id="delete-user-info"></strong></p>
 
             <!-- Скрытая форма для отправки запроса на удаление -->
-            <form id="deleteForm" th:action="@{/admin/delete}" method="post" style="display: none;">
+            <form id="deleteForm" th:action="@{/admin/delete}" method="post">
                 <input type="hidden" name="id" id="delete-id">
             </form>
         </div>
@@ -501,8 +459,9 @@
 
     function openEditModal(link) {
         var data = link.dataset;
+
+        // Заполняем поля формы данными из data-атрибутов
         document.getElementById('edit-id').value = data.id;
-        document.getElementById('edit-id-display').value = data.id;
         document.getElementById('edit-firstName').value = data.firstname;
         document.getElementById('edit-lastName').value = data.lastname;
         document.getElementById('edit-age').value = data.age;
@@ -510,12 +469,12 @@
         document.getElementById('edit-password').value = '';
 
         // Сбросить все чекбоксы
-        document.querySelectorAll('#editModal .role-checkbox-edit').forEach(cb => cb.checked = false);
+        document.querySelectorAll('#editModal .edit-role-checkbox').forEach(cb => cb.checked = false);
 
         // Отметить роли пользователя
         if (data.roles) {
             var userRoles = data.roles.split(', ');
-            document.querySelectorAll('#editModal .role-checkbox-edit').forEach(cb => {
+            document.querySelectorAll('#editModal .edit-role-checkbox').forEach(cb => {
                 if (userRoles.includes(cb.nextElementSibling.textContent.trim())) {
                     cb.checked = true;
                 }
@@ -535,6 +494,8 @@
     function openDeleteModal(link) {
         var data = link.dataset;
         document.getElementById('delete-id').value = data.id;
+        document.getElementById('delete-user-info').innerText =
+            'ID: ' + data.id + ', Name: ' + data.firstname + ' ' + data.lastname;
         deleteModal.style.display = 'block';
     }
 
