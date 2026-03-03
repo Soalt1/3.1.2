@@ -6,6 +6,7 @@ import javax.persistence.EntityManager;
 import javax.persistence.PersistenceContext;
 import javax.persistence.TypedQuery;
 import java.util.List;
+import java.util.Optional;
 
 @Repository
 public class UserDaoImpl implements UserDao {
@@ -15,21 +16,23 @@ public class UserDaoImpl implements UserDao {
 
     @Override
     public List<User> findAll() {
-        return entityManager.createQuery("SELECT u FROM User u LEFT JOIN FETCH u.roles", User.class)
-                .getResultList();
+        TypedQuery<User> query = entityManager.createQuery(
+                "SELECT DISTINCT u FROM User u LEFT JOIN FETCH u.roles", User.class);
+        return query.getResultList();
     }
 
     @Override
-    public User findById(Long id) {
-        return entityManager.find(User.class, id);
+    public Optional<User> findById(Long id) {
+        User user = entityManager.find(User.class, id);
+        return Optional.ofNullable(user);
     }
 
     @Override
-    public User findByEmail(String email) {
+    public Optional<User> findByEmail(String email) {
         TypedQuery<User> query = entityManager.createQuery(
                 "SELECT u FROM User u LEFT JOIN FETCH u.roles WHERE u.email = :email", User.class);
         query.setParameter("email", email);
-        return query.getResultList().stream().findFirst().orElse(null);
+        return query.getResultList().stream().findFirst();
     }
 
     @Override
@@ -44,10 +47,7 @@ public class UserDaoImpl implements UserDao {
 
     @Override
     public void deleteById(Long id) {
-        User user = findById(id);
-        if (user != null) {
-            entityManager.remove(user);
-        }
+        findById(id).ifPresent(entityManager::remove);
     }
 
     @Override

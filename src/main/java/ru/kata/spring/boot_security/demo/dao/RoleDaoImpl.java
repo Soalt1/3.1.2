@@ -6,6 +6,7 @@ import javax.persistence.EntityManager;
 import javax.persistence.PersistenceContext;
 import javax.persistence.TypedQuery;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -17,26 +18,30 @@ public class RoleDaoImpl implements RoleDao {
 
     @Override
     public List<Role> findAll() {
-        return entityManager.createQuery("FROM Role", Role.class).getResultList();
+        TypedQuery<Role> query = entityManager.createQuery("FROM Role", Role.class);
+        return query.getResultList();
     }
 
     @Override
-    public Role findById(Long id) {
-        return entityManager.find(Role.class, id);
+    public Optional<Role> findById(Long id) {
+        Role role = entityManager.find(Role.class, id);
+        return Optional.ofNullable(role);
     }
 
     @Override
-    public Role findByName(String name) {
+    public Optional<Role> findByName(String name) {
         TypedQuery<Role> query = entityManager.createQuery(
                 "FROM Role WHERE name = :name", Role.class);
         query.setParameter("name", name);
-        return query.getResultList().stream().findFirst().orElse(null);
+        return query.getResultList().stream().findFirst();
     }
 
     @Override
     public Set<Role> findByIds(Set<Long> ids) {
         return ids.stream()
                 .map(this::findById)
+                .filter(Optional::isPresent)
+                .map(Optional::get)
                 .collect(Collectors.toSet());
     }
 

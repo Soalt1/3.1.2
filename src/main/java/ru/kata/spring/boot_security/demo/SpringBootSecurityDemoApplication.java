@@ -22,7 +22,10 @@ public class SpringBootSecurityDemoApplication {
     public CommandLineRunner initializeData(UserService userService, RoleService roleService) {
         return args -> {
             // Инициализируем роли
-            roleService.initializeRoles();
+            if (roleService.findAll().isEmpty()) {
+                roleService.save(new Role("ROLE_ADMIN"));
+                roleService.save(new Role("ROLE_USER"));
+            }
 
             // Создаем тестовых пользователей, если их нет
             try {
