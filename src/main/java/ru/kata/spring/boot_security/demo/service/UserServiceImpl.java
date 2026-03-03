@@ -53,16 +53,17 @@ public class UserServiceImpl implements UserService {
         // Кодируем пароль
         user.setPassword(passwordEncoder.encode(user.getPassword()));
 
-        // Получаем управляемые (managed) сущности ролей из БД
+        // Получаем управляемые сущности ролей из БД
         Set<Role> managedRoles = new HashSet<>();
-        for (Role role : user.getRoles()) {
-            // Важно! Находим роль в БД, чтобы получить managed entity
-            Role managedRole = roleService.findByName(role.getName());
-            managedRoles.add(managedRole);
+        if (user.getRoles() != null && !user.getRoles().isEmpty()) {
+            for (Role role : user.getRoles()) {
+                // Ищем роль по имени в БД
+                Role managedRole = roleService.findByName(role.getName());
+                managedRoles.add(managedRole);
+            }
         }
         user.setRoles(managedRoles);
 
-        // Теперь сохраняем пользователя - роли уже managed, ошибки не будет
         userDao.save(user);
         return user;
     }
@@ -88,15 +89,16 @@ public class UserServiceImpl implements UserService {
             existingUser.setPassword(passwordEncoder.encode(user.getPassword()));
         }
 
-        // Получаем управляемые (managed) сущности ролей
+        // Получаем управляемые сущности ролей
         Set<Role> managedRoles = new HashSet<>();
-        for (Role role : user.getRoles()) {
-            Role managedRole = roleService.findByName(role.getName());
-            managedRoles.add(managedRole);
+        if (user.getRoles() != null && !user.getRoles().isEmpty()) {
+            for (Role role : user.getRoles()) {
+                Role managedRole = roleService.findByName(role.getName());
+                managedRoles.add(managedRole);
+            }
         }
         existingUser.setRoles(managedRoles);
 
-        // Сохраняем изменения
         userDao.update(existingUser);
         return existingUser;
     }
@@ -110,5 +112,41 @@ public class UserServiceImpl implements UserService {
     @Override
     public boolean existsByEmail(String email) {
         return userDao.existsByEmail(email);
+    }
+
+    @Override
+    @Transactional
+    public void createUser(String firstName, String lastName, Integer age,
+                           String email, String password, Set<Long> roleIds) {
+        User user = new User(firstName, lastName, age, email, password);
+
+        Set<Role> roles = (roleIds == null || roleIds.isEmpty())
+                ? new HashSet<>()
+                : roleService.findByIds(roleIds);
+        user.setRoles(roles);
+
+        save(user);
+    }
+
+    @Override
+    @Transactional
+    public void updateUser(Long id, String firstName, String lastName, Integer age,
+                           String email, String password, Set<Long> roleIds) {
+        User user = findById(id);
+        user.setFirstName(firstName);
+        user.setLastName(lastName);
+        user.setAge(age);
+        user.setEmail(email);
+
+        if (password != null && !password.isEmpty()) {
+            user.setPassword(password);
+        }
+
+        Set<Role> roles = (roleIds == null || roleIds.isEmpty())
+                ? new HashSet<>()
+                : roleService.findByIds(roleIds);
+        user.setRoles(roles);
+
+        update(user);
     }
 }

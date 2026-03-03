@@ -2,6 +2,7 @@ package ru.kata.spring.boot_security.demo.service;
 
 import ru.kata.spring.boot_security.demo.model.User;
 import java.util.List;
+import java.util.Set;
 
 public interface UserService {
     List<User> findAll();
@@ -11,4 +12,10 @@ public interface UserService {
     User update(User user);
     void deleteById(Long id);
     boolean existsByEmail(String email);
+
+    // Новые методы для админских операций
+    void createUser(String firstName, String lastName, Integer age, String email,
+                    String password, Set<Long> roleIds);
+    void updateUser(Long id, String firstName, String lastName, Integer age,
+                    String email, String password, Set<Long> roleIds);
 }
