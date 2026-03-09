@@ -3,6 +3,9 @@ package ru.kata.spring.boot_security.demo.service;
 import ru.kata.spring.boot_security.demo.dao.UserDao;
 import ru.kata.spring.boot_security.demo.model.Role;
 import ru.kata.spring.boot_security.demo.model.User;
+import org.springframework.beans.BeanUtils;
+import org.springframework.beans.BeanWrapper;
+import org.springframework.beans.BeanWrapperImpl;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -78,29 +81,59 @@ public class UserServiceImpl implements UserService {
             throw new RuntimeException("Email already exists");
         }
 
-        // Обновляем поля
-        existingUser.setFirstName(user.getFirstName());
-        existingUser.setLastName(user.getLastName());
-        existingUser.setAge(user.getAge());
-        existingUser.setEmail(user.getEmail());
+        // Копируем все свойства, кроме null и указанных полей
+        copyNonNullProperties(user, existingUser, "id", "password", "roles");
 
-        // Обновляем пароль только если он был изменен
+        // Отдельно обрабатываем пароль
         if (user.getPassword() != null && !user.getPassword().isEmpty()) {
             existingUser.setPassword(passwordEncoder.encode(user.getPassword()));
         }
 
-        // Получаем управляемые сущности ролей
-        Set<Role> managedRoles = new HashSet<>();
+        // Отдельно обрабатываем роли
         if (user.getRoles() != null && !user.getRoles().isEmpty()) {
+            Set<Role> managedRoles = new HashSet<>();
             for (Role role : user.getRoles()) {
                 Role managedRole = roleService.findByName(role.getName());
                 managedRoles.add(managedRole);
             }
+            existingUser.setRoles(managedRoles);
         }
-        existingUser.setRoles(managedRoles);
 
         userDao.update(existingUser);
         return existingUser;
+    }
+
+    /**
+     * Копирует свойства из источника в цель, игнорируя null значения и указанные поля
+     */
+    private void copyNonNullProperties(Object source, Object target, String... ignoreProperties) {
+        BeanUtils.copyProperties(source, target, getNullPropertyNames(source, ignoreProperties));
+    }
+
+    /**
+     * Возвращает массив имен свойств, которые равны null или входят в список игнорируемых
+     */
+    private String[] getNullPropertyNames(Object source, String... ignoreProperties) {
+        final BeanWrapper src = new BeanWrapperImpl(source);
+        java.beans.PropertyDescriptor[] pds = src.getPropertyDescriptors();
+
+        Set<String> emptyNames = new HashSet<>();
+
+        // Добавляем игнорируемые поля
+        for (String ignoreProperty : ignoreProperties) {
+            emptyNames.add(ignoreProperty);
+        }
+
+        // Добавляем null поля
+        for (java.beans.PropertyDescriptor pd : pds) {
+            Object srcValue = src.getPropertyValue(pd.getName());
+            if (srcValue == null) {
+                emptyNames.add(pd.getName());
+            }
+        }
+
+        String[] result = new String[emptyNames.size()];
+        return emptyNames.toArray(result);
     }
 
     @Override
@@ -132,15 +165,8 @@ public class UserServiceImpl implements UserService {
     @Transactional
     public void updateUser(Long id, String firstName, String lastName, Integer age,
                            String email, String password, Set<Long> roleIds) {
-        User user = findById(id);
-        user.setFirstName(firstName);
-        user.setLastName(lastName);
-        user.setAge(age);
-        user.setEmail(email);
-
-        if (password != null && !password.isEmpty()) {
-            user.setPassword(password);
-        }
+        User user = new User(firstName, lastName, age, email, password);
+        user.setId(id);
 
         Set<Role> roles = (roleIds == null || roleIds.isEmpty())
                 ? new HashSet<>()
