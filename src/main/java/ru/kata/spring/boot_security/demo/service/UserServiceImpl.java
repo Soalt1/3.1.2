@@ -3,9 +3,6 @@ package ru.kata.spring.boot_security.demo.service;
 import ru.kata.spring.boot_security.demo.dao.UserDao;
 import ru.kata.spring.boot_security.demo.model.Role;
 import ru.kata.spring.boot_security.demo.model.User;
-import org.springframework.beans.BeanUtils;
-import org.springframework.beans.BeanWrapper;
-import org.springframework.beans.BeanWrapperImpl;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -19,7 +16,7 @@ public class UserServiceImpl implements UserService {
 
     private final UserDao userDao;
     private final PasswordEncoder passwordEncoder;
-    private final RoleService roleService;
+    private final RoleService roleService;  // ← Внедряем RoleService для работы с ролями
 
     public UserServiceImpl(UserDao userDao,
                            PasswordEncoder passwordEncoder,
@@ -56,15 +53,8 @@ public class UserServiceImpl implements UserService {
         // Кодируем пароль
         user.setPassword(passwordEncoder.encode(user.getPassword()));
 
-        // Получаем управляемые сущности ролей из БД
-        Set<Role> managedRoles = new HashSet<>();
-        if (user.getRoles() != null && !user.getRoles().isEmpty()) {
-            for (Role role : user.getRoles()) {
-                // Ищем роль по имени в БД
-                Role managedRole = roleService.findByName(role.getName());
-                managedRoles.add(managedRole);
-            }
-        }
+        // Получаем управляемые сущности ролей через RoleService (делегирование!)
+        Set<Role> managedRoles = getManagedRoles(user.getRoles());
         user.setRoles(managedRoles);
 
         userDao.save(user);
@@ -81,59 +71,58 @@ public class UserServiceImpl implements UserService {
             throw new RuntimeException("Email already exists");
         }
 
-        // Копируем все свойства, кроме null и указанных полей
-        copyNonNullProperties(user, existingUser, "id", "password", "roles");
-
-        // Отдельно обрабатываем пароль
-        if (user.getPassword() != null && !user.getPassword().isEmpty()) {
-            existingUser.setPassword(passwordEncoder.encode(user.getPassword()));
-        }
-
-        // Отдельно обрабатываем роли
-        if (user.getRoles() != null && !user.getRoles().isEmpty()) {
-            Set<Role> managedRoles = new HashSet<>();
-            for (Role role : user.getRoles()) {
-                Role managedRole = roleService.findByName(role.getName());
-                managedRoles.add(managedRole);
-            }
-            existingUser.setRoles(managedRoles);
-        }
+        // Обновляем поля одной операцией
+        updateExistingUser(existingUser, user);
 
         userDao.update(existingUser);
         return existingUser;
     }
 
     /**
-     * Копирует свойства из источника в цель, игнорируя null значения и указанные поля
+     * Метод для обновления полей одной операцией (вместо множества сеттеров)
      */
-    private void copyNonNullProperties(Object source, Object target, String... ignoreProperties) {
-        BeanUtils.copyProperties(source, target, getNullPropertyNames(source, ignoreProperties));
+    private void updateExistingUser(User existingUser, User newUser) {
+        // Копируем все поля одной группой (логически это одна операция)
+        existingUser.setFirstName(newUser.getFirstName());
+        existingUser.setLastName(newUser.getLastName());
+        existingUser.setAge(newUser.getAge());
+        existingUser.setEmail(newUser.getEmail());
+
+        // Пароль обновляем только если он передан
+        if (newUser.getPassword() != null && !newUser.getPassword().isEmpty()) {
+            existingUser.setPassword(passwordEncoder.encode(newUser.getPassword()));
+        }
+
+        // Роли обновляем через RoleService
+        if (newUser.getRoles() != null && !newUser.getRoles().isEmpty()) {
+            Set<Role> managedRoles = getManagedRoles(newUser.getRoles());
+            existingUser.setRoles(managedRoles);
+        }
     }
 
     /**
-     * Возвращает массив имен свойств, которые равны null или входят в список игнорируемых
+     * Делегируем получение управляемых ролей RoleService
+     * (логика работы с ролями вынесена в отдельный сервис)
      */
-    private String[] getNullPropertyNames(Object source, String... ignoreProperties) {
-        final BeanWrapper src = new BeanWrapperImpl(source);
-        java.beans.PropertyDescriptor[] pds = src.getPropertyDescriptors();
-
-        Set<String> emptyNames = new HashSet<>();
-
-        // Добавляем игнорируемые поля
-        for (String ignoreProperty : ignoreProperties) {
-            emptyNames.add(ignoreProperty);
+    private Set<Role> getManagedRoles(Set<Role> roles) {
+        Set<Role> managedRoles = new HashSet<>();
+        for (Role role : roles) {
+            // RoleService отвечает за поиск ролей!
+            Role managedRole = roleService.findByName(role.getName());
+            managedRoles.add(managedRole);
         }
+        return managedRoles;
+    }
 
-        // Добавляем null поля
-        for (java.beans.PropertyDescriptor pd : pds) {
-            Object srcValue = src.getPropertyValue(pd.getName());
-            if (srcValue == null) {
-                emptyNames.add(pd.getName());
-            }
+    /**
+     * Делегируем получение ролей по ID RoleService
+     */
+    private Set<Role> getRolesByIds(Set<Long> roleIds) {
+        if (roleIds == null || roleIds.isEmpty()) {
+            return new HashSet<>();
         }
-
-        String[] result = new String[emptyNames.size()];
-        return emptyNames.toArray(result);
+        // RoleService отвечает за поиск ролей по ID!
+        return roleService.findByIds(roleIds);
     }
 
     @Override
@@ -153,9 +142,8 @@ public class UserServiceImpl implements UserService {
                            String email, String password, Set<Long> roleIds) {
         User user = new User(firstName, lastName, age, email, password);
 
-        Set<Role> roles = (roleIds == null || roleIds.isEmpty())
-                ? new HashSet<>()
-                : roleService.findByIds(roleIds);
+        // Делегируем получение ролей отдельному методу, который использует RoleService
+        Set<Role> roles = getRolesByIds(roleIds);
         user.setRoles(roles);
 
         save(user);
@@ -165,14 +153,23 @@ public class UserServiceImpl implements UserService {
     @Transactional
     public void updateUser(Long id, String firstName, String lastName, Integer age,
                            String email, String password, Set<Long> roleIds) {
-        User user = new User(firstName, lastName, age, email, password);
-        user.setId(id);
+        User existingUser = findById(id);
 
-        Set<Role> roles = (roleIds == null || roleIds.isEmpty())
-                ? new HashSet<>()
-                : roleService.findByIds(roleIds);
-        user.setRoles(roles);
+        // Обновляем поля одной операцией
+        existingUser.setFirstName(firstName);
+        existingUser.setLastName(lastName);
+        existingUser.setAge(age);
+        existingUser.setEmail(email);
 
-        update(user);
+        if (password != null && !password.isEmpty()) {
+            existingUser.setPassword(passwordEncoder.encode(password));
+        }
+
+        // Делегируем получение ролей RoleService
+        Set<Role> roles = getRolesByIds(roleIds);
+        existingUser.setRoles(roles);
+
+        // Сохраняем
+        userDao.update(existingUser);
     }
 }

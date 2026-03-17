@@ -19,12 +19,12 @@ public class RoleDaoImpl implements RoleDao {
     @Override
     public List<Role> findAll() {
         TypedQuery<Role> query = entityManager.createQuery("FROM Role", Role.class);
-        return query.getResultList();
+        return query.getResultList();  // ← Только Role
     }
 
     @Override
     public Optional<Role> findById(Long id) {
-        Role role = entityManager.find(Role.class, id);
+        Role role = entityManager.find(Role.class, id);  // ← Только Role
         return Optional.ofNullable(role);
     }
 
@@ -33,28 +33,28 @@ public class RoleDaoImpl implements RoleDao {
         TypedQuery<Role> query = entityManager.createQuery(
                 "FROM Role WHERE name = :name", Role.class);
         query.setParameter("name", name);
-        return query.getResultList().stream().findFirst();
+        return query.getResultList().stream().findFirst();  // ← Только Role
     }
 
     @Override
     public Set<Role> findByIds(Set<Long> ids) {
         return ids.stream()
-                .map(this::findById)
+                .map(this::findById)           // ← Только Role
                 .filter(Optional::isPresent)
                 .map(Optional::get)
-                .collect(Collectors.toSet());
+                .collect(Collectors.toSet());  // ← Только Role
     }
 
     @Override
     public void save(Role role) {
-        entityManager.persist(role);
+        entityManager.persist(role);  // ← Только Role
     }
 
     @Override
     public void initializeRoles() {
         if (findAll().isEmpty()) {
-            save(new Role("ROLE_ADMIN"));
-            save(new Role("ROLE_USER"));
+            save(new Role("ROLE_ADMIN"));  // ← Только Role
+            save(new Role("ROLE_USER"));   // ← Только Role
         }
     }
 }

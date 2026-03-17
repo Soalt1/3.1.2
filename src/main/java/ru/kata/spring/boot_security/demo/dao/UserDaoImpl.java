@@ -18,12 +18,12 @@ public class UserDaoImpl implements UserDao {
     public List<User> findAll() {
         TypedQuery<User> query = entityManager.createQuery(
                 "SELECT DISTINCT u FROM User u LEFT JOIN FETCH u.roles", User.class);
-        return query.getResultList();
+        return query.getResultList();  // ← Только User
     }
 
     @Override
     public Optional<User> findById(Long id) {
-        User user = entityManager.find(User.class, id);
+        User user = entityManager.find(User.class, id);  // ← Только User
         return Optional.ofNullable(user);
     }
 
@@ -32,22 +32,22 @@ public class UserDaoImpl implements UserDao {
         TypedQuery<User> query = entityManager.createQuery(
                 "SELECT u FROM User u LEFT JOIN FETCH u.roles WHERE u.email = :email", User.class);
         query.setParameter("email", email);
-        return query.getResultList().stream().findFirst();
+        return query.getResultList().stream().findFirst();  // ← Только User
     }
 
     @Override
     public void save(User user) {
-        entityManager.persist(user);
+        entityManager.persist(user);  // ← Только User
     }
 
     @Override
     public void update(User user) {
-        entityManager.merge(user);
+        entityManager.merge(user);  // ← Только User
     }
 
     @Override
     public void deleteById(Long id) {
-        findById(id).ifPresent(entityManager::remove);
+        findById(id).ifPresent(entityManager::remove);  // ← Только User
     }
 
     @Override
@@ -55,6 +55,6 @@ public class UserDaoImpl implements UserDao {
         TypedQuery<Long> query = entityManager.createQuery(
                 "SELECT COUNT(u) FROM User u WHERE u.email = :email", Long.class);
         query.setParameter("email", email);
-        return query.getSingleResult() > 0;
+        return query.getSingleResult() > 0;  // ← Только User
     }
 }

@@ -11,7 +11,7 @@ import java.util.Set;
 @Transactional(readOnly = true)
 public class RoleServiceImpl implements RoleService {
 
-    private final RoleDao roleDao;
+    private final RoleDao roleDao;  // ← Работает только со своим DAO
 
     public RoleServiceImpl(RoleDao roleDao) {
         this.roleDao = roleDao;
@@ -19,38 +19,38 @@ public class RoleServiceImpl implements RoleService {
 
     @Override
     public List<Role> findAll() {
-        return roleDao.findAll();
+        return roleDao.findAll();  // ← Только Role
     }
 
     @Override
     public Role findById(Long id) {
-        return roleDao.findById(id)
+        return roleDao.findById(id)  // ← Только Role
                 .orElseThrow(() -> new RuntimeException("Role not found with id: " + id));
     }
 
     @Override
     public Role findByName(String name) {
-        return roleDao.findByName(name)
+        return roleDao.findByName(name)  // ← Только Role
                 .orElseThrow(() -> new RuntimeException("Role not found with name: " + name));
     }
 
     @Override
     public Set<Role> findByIds(Set<Long> ids) {
-        return roleDao.findByIds(ids);
+        return roleDao.findByIds(ids);  // ← Только Role
     }
 
     @Override
     @Transactional
     public void save(Role role) {
-        roleDao.save(role);
+        roleDao.save(role);  // ← Только Role
     }
 
     @Override
     @Transactional
     public void initializeRoles() {
         if (findAll().isEmpty()) {
-            save(new Role("ROLE_ADMIN"));
-            save(new Role("ROLE_USER"));
+            save(new Role("ROLE_ADMIN"));  // ← Только Role
+            save(new Role("ROLE_USER"));   // ← Только Role
         }
     }
 }

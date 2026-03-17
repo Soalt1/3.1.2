@@ -14,8 +14,8 @@ import java.util.Set;
 @Controller
 public class AdminController {
 
-    private final UserService userService;
-    private final RoleService roleService;
+    private final UserService userService;      // ← только UserService
+    private final RoleService roleService;      // ← только RoleService (отдельно)
 
     public AdminController(UserService userService, RoleService roleService) {
         this.userService = userService;
@@ -35,9 +35,12 @@ public class AdminController {
     @GetMapping("/admin")
     public ModelAndView adminPanel(@AuthenticationPrincipal User currentUser) {
         ModelAndView modelAndView = new ModelAndView("admin");
-        modelAndView.addObject("users", userService.findAll());
-        modelAndView.addObject("roles", roleService.findAll());
+
+        // Controller только получает данные из сервисов и передает в представление
+        modelAndView.addObject("users", userService.findAll());        // ← UserService
+        modelAndView.addObject("roles", roleService.findAll());        // ← RoleService (отдельно)
         modelAndView.addObject("currentUser", currentUser);
+
         return modelAndView;
     }
 
@@ -50,6 +53,7 @@ public class AdminController {
             @RequestParam("password") String password,
             @RequestParam(value = "roleIds", required = false) Set<Long> roleIds) {
 
+        // Controller передает все параметры в UserService
         userService.createUser(firstName, lastName, age, email, password, roleIds);
         return new ModelAndView("redirect:/admin");
     }
@@ -64,6 +68,7 @@ public class AdminController {
             @RequestParam(value = "password", required = false) String password,
             @RequestParam(value = "roleIds", required = false) Set<Long> roleIds) {
 
+        // Controller передает все параметры в UserService
         userService.updateUser(id, firstName, lastName, age, email, password, roleIds);
         return new ModelAndView("redirect:/admin");
     }
