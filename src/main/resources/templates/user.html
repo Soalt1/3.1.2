@@ -3,7 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <title>User information-page</title>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <style>
+        /* Все стили остаются без изменений */
         body {
             font-family: Arial, sans-serif;
             margin: 20px;
@@ -87,17 +89,38 @@
             <th>Role</th>
         </tr>
         </thead>
-        <tbody>
-        <tr>
-            <td th:text="${user.id}"></td>
-            <td th:text="${user.firstName}"></td>
-            <td th:text="${user.lastName}"></td>
-            <td th:text="${user.age}"></td>
-            <td th:text="${user.email}"></td>
-            <td th:text="${user.roles}"></td>
-        </tr>
+        <tbody id="userTableBody">
+        <!-- Заполняется через JS -->
         </tbody>
     </table>
 </div>
+
+<script>
+    $(document).ready(function() {
+        loadUserInfo();
+    });
+
+    function loadUserInfo() {
+        fetch('/api/user/info')
+            .then(response => response.json())
+            .then(user => {
+                let roles = user.roles.map(r => r.name.replace('ROLE_', '')).join(', ');
+                let tableRow = `
+                    <tr>
+                        <td>${user.id}</td>
+                        <td>${user.firstName}</td>
+                        <td>${user.lastName}</td>
+                        <td>${user.age}</td>
+                        <td>${user.email}</td>
+                        <td>${roles}</td>
+                    </tr>
+                `;
+                $('#userTableBody').html(tableRow);
+            })
+            .catch(error => {
+                console.error('Error loading user info:', error);
+            });
+    }
+</script>
 </body>
 </html>

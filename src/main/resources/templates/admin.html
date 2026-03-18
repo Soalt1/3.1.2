@@ -4,7 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Admin panel</title>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <style>
+        /* Все стили остаются без изменений */
         body {
             font-family: Arial, sans-serif;
             margin: 0;
@@ -233,6 +235,23 @@
         .tabs a:hover {
             text-decoration: underline;
         }
+
+        .alert {
+            padding: 10px;
+            margin-bottom: 15px;
+            border: 1px solid transparent;
+            border-radius: 4px;
+        }
+        .alert-success {
+            color: #155724;
+            background-color: #d4edda;
+            border-color: #c3e6cb;
+        }
+        .alert-danger {
+            color: #721c24;
+            background-color: #f8d7da;
+            border-color: #f5c6cb;
+        }
     </style>
 </head>
 <body>
@@ -257,9 +276,12 @@
         <!-- URL и информация о пользователе -->
         <div class="url">http://localhost:8080/admin</div>
 
-        <div class="user-info" th:if="${currentUser}">
-            <span th:text="${currentUser.email} + ' with roles: ' + ${currentUser.roles}"></span>
+        <div class="user-info" id="currentUserInfo">
+            <!-- Загружается через JS -->
         </div>
+
+        <!-- Контейнер для уведомлений -->
+        <div id="alertContainer"></div>
 
         <!-- Users table -->
         <h2>Users table</h2>
@@ -282,32 +304,8 @@
                 <th>Delete</th>
             </tr>
             </thead>
-            <tbody>
-            <tr th:each="user : ${users}">
-                <td th:text="${user.id}"></td>
-                <td th:text="${user.firstName}"></td>
-                <td th:text="${user.lastName}"></td>
-                <td th:text="${user.age}"></td>
-                <td th:text="${user.email}"></td>
-                <td th:text="${user.roles}"></td>
-                <td>
-                    <a href="#" class="btn-edit"
-                       th:data-id="${user.id}"
-                       th:data-firstname="${user.firstName}"
-                       th:data-lastname="${user.lastName}"
-                       th:data-age="${user.age}"
-                       th:data-email="${user.email}"
-                       th:data-roles="${user.roles}"
-                       onclick="openEditModal(this)">Edit</a>
-                </td>
-                <td>
-                    <a href="#" class="btn-delete"
-                       th:data-id="${user.id}"
-                       th:data-firstname="${user.firstName}"
-                       th:data-lastname="${user.lastName}"
-                       onclick="openDeleteModal(this)">Delete</a>
-                </td>
-            </tr>
+            <tbody id="usersTableBody">
+            <!-- Заполняется через JS -->
             </tbody>
         </table>
 
@@ -329,41 +327,38 @@
             <span class="modal-close" onclick="closeAddModal()">&times;</span>
         </div>
 
-        <form th:action="@{/admin/add}" method="post">
-            <div class="modal-body">
-                <div class="form-group">
-                    <label>First name:</label>
-                    <input type="text" name="firstName" required>
-                </div>
-                <div class="form-group">
-                    <label>Last name:</label>
-                    <input type="text" name="lastName" required>
-                </div>
-                <div class="form-group">
-                    <label>Age:</label>
-                    <input type="number" name="age" min="1" max="150" required>
-                </div>
-                <div class="form-group">
-                    <label>Email:</label>
-                    <input type="email" name="email" required>
-                </div>
-                <div class="form-group">
-                    <label>Password:</label>
-                    <input type="password" name="password" required>
-                </div>
-                <div class="form-group">
-                    <label>Role:</label>
-                    <div th:each="role : ${roles}">
-                        <input type="checkbox" name="roleIds" th:value="${role.id}">
-                        <label th:text="${role}"></label>
-                    </div>
+        <div class="modal-body">
+            <div class="form-group">
+                <label>First name:</label>
+                <input type="text" id="addFirstName" required>
+            </div>
+            <div class="form-group">
+                <label>Last name:</label>
+                <input type="text" id="addLastName" required>
+            </div>
+            <div class="form-group">
+                <label>Age:</label>
+                <input type="number" id="addAge" min="1" max="150" required>
+            </div>
+            <div class="form-group">
+                <label>Email:</label>
+                <input type="email" id="addEmail" required>
+            </div>
+            <div class="form-group">
+                <label>Password:</label>
+                <input type="password" id="addPassword" required>
+            </div>
+            <div class="form-group">
+                <label>Role:</label>
+                <div id="addRolesContainer">
+                    <!-- Загружается через JS -->
                 </div>
             </div>
-            <div class="modal-footer">
-                <button type="button" onclick="closeAddModal()">Close</button>
-                <button type="submit" class="btn-primary">Add</button>
-            </div>
-        </form>
+        </div>
+        <div class="modal-footer">
+            <button type="button" onclick="closeAddModal()">Close</button>
+            <button type="button" class="btn-primary" onclick="addUser()">Add</button>
+        </div>
     </div>
 </div>
 
@@ -375,46 +370,40 @@
             <span class="modal-close" onclick="closeEditModal()">&times;</span>
         </div>
 
-        <form th:action="@{/admin/update}" method="post">
-            <!-- ВАЖНО: это поле будет заполнено через JavaScript -->
-            <input type="hidden" name="id" id="edit-id">
+        <div class="modal-body">
+            <input type="hidden" id="editId">
 
-            <div class="modal-body">
-                <div class="form-group">
-                    <label>First name:</label>
-                    <input type="text" name="firstName" id="edit-firstName" required>
-                </div>
-                <div class="form-group">
-                    <label>Last name:</label>
-                    <input type="text" name="lastName" id="edit-lastName" required>
-                </div>
-                <div class="form-group">
-                    <label>Age:</label>
-                    <input type="number" name="age" id="edit-age" min="1" max="150" required>
-                </div>
-                <div class="form-group">
-                    <label>Email:</label>
-                    <input type="email" name="email" id="edit-email" required>
-                </div>
-                <div class="form-group">
-                    <label>Password:</label>
-                    <input type="password" name="password" id="edit-password" placeholder="Leave empty to keep current">
-                </div>
-                <div class="form-group">
-                    <label>Role:</label>
-                    <div th:each="role : ${roles}">
-                        <input type="checkbox" class="edit-role-checkbox"
-                               name="roleIds" th:value="${role.id}"
-                               th:id="'edit_role_' + ${role.id}">
-                        <label th:for="'edit_role_' + ${role.id}" th:text="${role}"></label>
-                    </div>
+            <div class="form-group">
+                <label>First name:</label>
+                <input type="text" id="editFirstName" required>
+            </div>
+            <div class="form-group">
+                <label>Last name:</label>
+                <input type="text" id="editLastName" required>
+            </div>
+            <div class="form-group">
+                <label>Age:</label>
+                <input type="number" id="editAge" min="1" max="150" required>
+            </div>
+            <div class="form-group">
+                <label>Email:</label>
+                <input type="email" id="editEmail" required>
+            </div>
+            <div class="form-group">
+                <label>Password:</label>
+                <input type="password" id="editPassword" placeholder="Leave empty to keep current">
+            </div>
+            <div class="form-group">
+                <label>Role:</label>
+                <div id="editRolesContainer">
+                    <!-- Загружается через JS -->
                 </div>
             </div>
-            <div class="modal-footer">
-                <button type="button" onclick="closeEditModal()">Close</button>
-                <button type="submit" class="btn-primary">Edit</button>
-            </div>
-        </form>
+        </div>
+        <div class="modal-footer">
+            <button type="button" onclick="closeEditModal()">Close</button>
+            <button type="button" class="btn-primary" onclick="updateUser()">Edit</button>
+        </div>
     </div>
 </div>
 
@@ -429,94 +418,243 @@
         <div class="modal-body">
             <p>Are you sure you want to delete this user?</p>
             <p><strong id="delete-user-info"></strong></p>
-
-            <!-- Скрытая форма для отправки запроса на удаление -->
-            <form id="deleteForm" th:action="@{/admin/delete}" method="post">
-                <input type="hidden" name="id" id="delete-id">
-            </form>
+            <input type="hidden" id="deleteId">
         </div>
         <div class="modal-footer">
             <button type="button" onclick="closeDeleteModal()">Close</button>
-            <button type="button" class="btn-primary" onclick="submitDelete()">Delete</button>
+            <button type="button" class="btn-primary" onclick="deleteUser()">Delete</button>
         </div>
     </div>
 </div>
 
 <script>
-    // Модальное окно для добавления
-    var addModal = document.getElementById('addModal');
+    let allRoles = [];
+
+    $(document).ready(function() {
+        loadCurrentUser();
+        loadUsers();
+        loadRoles();
+    });
+
+    function loadCurrentUser() {
+        fetch('/api/admin/current')
+            .then(response => response.json())
+            .then(user => {
+                let roles = user.roles.map(r => r.name.replace('ROLE_', '')).join(', ');
+                $('#currentUserInfo').html(`<span>${user.email} with roles: ${roles}</span>`);
+            });
+    }
+
+    function loadUsers() {
+        fetch('/api/admin/users')
+            .then(response => response.json())
+            .then(users => {
+                let tableBody = '';
+                users.forEach(user => {
+                    let roles = user.roles.map(r => r.name.replace('ROLE_', '')).join(', ');
+                    tableBody += `
+                        <tr>
+                            <td>${user.id}</td>
+                            <td>${user.firstName}</td>
+                            <td>${user.lastName}</td>
+                            <td>${user.age}</td>
+                            <td>${user.email}</td>
+                            <td>${roles}</td>
+                            <td>
+                                <a href="#" class="btn-edit" onclick="openEditModal(${user.id})">Edit</a>
+                            </td>
+                            <td>
+                                <a href="#" class="btn-delete" onclick="openDeleteModal(${user.id}, '${user.firstName}', '${user.lastName}')">Delete</a>
+                            </td>
+                        </tr>
+                    `;
+                });
+                $('#usersTableBody').html(tableBody);
+            });
+    }
+
+    function loadRoles() {
+        fetch('/api/admin/roles')
+            .then(response => response.json())
+            .then(roles => {
+                allRoles = roles;
+                renderRoleCheckboxes('add');
+                renderRoleCheckboxes('edit');
+            });
+    }
+
+    function renderRoleCheckboxes(formType) {
+        let container = $(`#${formType}RolesContainer`);
+        container.empty();
+
+        allRoles.forEach(role => {
+            let roleName = role.name.replace('ROLE_', '');
+            container.append(`
+                <div>
+                    <input type="checkbox" class="${formType}-role-checkbox" value="${role.id}" id="${formType}Role${role.id}">
+                    <label for="${formType}Role${role.id}">${roleName}</label>
+                </div>
+            `);
+        });
+    }
 
     function openAddModal() {
-        addModal.style.display = 'block';
+        document.getElementById('addModal').style.display = 'block';
+        // Сбрасываем форму
+        $('#addFirstName').val('');
+        $('#addLastName').val('');
+        $('#addAge').val('');
+        $('#addEmail').val('');
+        $('#addPassword').val('');
+        $('.add-role-checkbox').prop('checked', false);
     }
 
     function closeAddModal() {
-        addModal.style.display = 'none';
+        document.getElementById('addModal').style.display = 'none';
     }
 
-    // Модальное окно для редактирования
-    var editModal = document.getElementById('editModal');
+    function addUser() {
+        let selectedRoles = [];
+        $('.add-role-checkbox:checked').each(function() {
+            selectedRoles.push(parseInt($(this).val()));
+        });
 
-    function openEditModal(link) {
-        var data = link.dataset;
+        let user = {
+            firstName: $('#addFirstName').val(),
+            lastName: $('#addLastName').val(),
+            age: parseInt($('#addAge').val()),
+            email: $('#addEmail').val(),
+            password: $('#addPassword').val(),
+            roles: selectedRoles.map(id => ({id: id}))
+        };
 
-        // Заполняем поля формы данными из data-атрибутов
-        document.getElementById('edit-id').value = data.id;
-        document.getElementById('edit-firstName').value = data.firstname;
-        document.getElementById('edit-lastName').value = data.lastname;
-        document.getElementById('edit-age').value = data.age;
-        document.getElementById('edit-email').value = data.email;
-        document.getElementById('edit-password').value = '';
-
-        // Сбросить все чекбоксы
-        document.querySelectorAll('#editModal .edit-role-checkbox').forEach(cb => cb.checked = false);
-
-        // Отметить роли пользователя
-        if (data.roles) {
-            var userRoles = data.roles.split(', ');
-            document.querySelectorAll('#editModal .edit-role-checkbox').forEach(cb => {
-                if (userRoles.includes(cb.nextElementSibling.textContent.trim())) {
-                    cb.checked = true;
+        fetch('/api/admin/users', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(user)
+        })
+            .then(response => {
+                if (response.ok) {
+                    closeAddModal();
+                    loadUsers();
+                    showAlert('User added successfully!', 'success');
+                } else {
+                    response.text().then(text => showAlert('Error: ' + text, 'danger'));
                 }
             });
-        }
+    }
 
-        editModal.style.display = 'block';
+    function openEditModal(id) {
+        fetch(`/api/admin/users/${id}`)
+            .then(response => response.json())
+            .then(user => {
+                $('#editId').val(user.id);
+                $('#editFirstName').val(user.firstName);
+                $('#editLastName').val(user.lastName);
+                $('#editAge').val(user.age);
+                $('#editEmail').val(user.email);
+                $('#editPassword').val('');
+
+                $('.edit-role-checkbox').prop('checked', false);
+                user.roles.forEach(role => {
+                    $(`#editRole${role.id}`).prop('checked', true);
+                });
+
+                document.getElementById('editModal').style.display = 'block';
+            });
     }
 
     function closeEditModal() {
-        editModal.style.display = 'none';
+        document.getElementById('editModal').style.display = 'none';
     }
 
-    // Модальное окно для удаления
-    var deleteModal = document.getElementById('deleteModal');
+    function updateUser() {
+        let selectedRoles = [];
+        $('.edit-role-checkbox:checked').each(function() {
+            selectedRoles.push(parseInt($(this).val()));
+        });
 
-    function openDeleteModal(link) {
-        var data = link.dataset;
-        document.getElementById('delete-id').value = data.id;
+        let user = {
+            id: parseInt($('#editId').val()),
+            firstName: $('#editFirstName').val(),
+            lastName: $('#editLastName').val(),
+            age: parseInt($('#editAge').val()),
+            email: $('#editEmail').val(),
+            password: $('#editPassword').val() || null,
+            roles: selectedRoles.map(id => ({id: id}))
+        };
+
+        fetch(`/api/admin/users/${user.id}`, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(user)
+        })
+            .then(response => {
+                if (response.ok) {
+                    closeEditModal();
+                    loadUsers();
+                    showAlert('User updated successfully!', 'success');
+                } else {
+                    response.text().then(text => showAlert('Error: ' + text, 'danger'));
+                }
+            });
+    }
+
+    function openDeleteModal(id, firstName, lastName) {
+        document.getElementById('deleteId').value = id;
         document.getElementById('delete-user-info').innerText =
-            'ID: ' + data.id + ', Name: ' + data.firstname + ' ' + data.lastname;
-        deleteModal.style.display = 'block';
+            'ID: ' + id + ', Name: ' + firstName + ' ' + lastName;
+        document.getElementById('deleteModal').style.display = 'block';
     }
 
     function closeDeleteModal() {
-        deleteModal.style.display = 'none';
+        document.getElementById('deleteModal').style.display = 'none';
     }
 
-    function submitDelete() {
-        document.getElementById('deleteForm').submit();
+    function deleteUser() {
+        let id = document.getElementById('deleteId').value;
+
+        fetch(`/api/admin/users/${id}`, {
+            method: 'DELETE'
+        })
+            .then(response => {
+                if (response.ok) {
+                    closeDeleteModal();
+                    loadUsers();
+                    showAlert('User deleted successfully!', 'success');
+                } else {
+                    response.text().then(text => showAlert('Error: ' + text, 'danger'));
+                }
+            });
+    }
+
+    function showAlert(message, type) {
+        let alertHtml = `
+            <div class="alert alert-${type}">
+                ${message}
+            </div>
+        `;
+        $('#alertContainer').html(alertHtml);
+
+        setTimeout(() => {
+            $('#alertContainer').empty();
+        }, 3000);
     }
 
     // Закрытие модальных окон при клике вне их
     window.onclick = function(event) {
-        if (event.target == addModal) {
-            addModal.style.display = 'none';
+        if (event.target == document.getElementById('addModal')) {
+            closeAddModal();
         }
-        if (event.target == editModal) {
-            editModal.style.display = 'none';
+        if (event.target == document.getElementById('editModal')) {
+            closeEditModal();
         }
-        if (event.target == deleteModal) {
-            deleteModal.style.display = 'none';
+        if (event.target == document.getElementById('deleteModal')) {
+            closeDeleteModal();
         }
     }
 </script>

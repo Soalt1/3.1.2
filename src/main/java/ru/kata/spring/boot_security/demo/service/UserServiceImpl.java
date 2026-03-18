@@ -9,6 +9,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 @Service
 @Transactional(readOnly = true)
@@ -16,7 +17,7 @@ public class UserServiceImpl implements UserService {
 
     private final UserDao userDao;
     private final PasswordEncoder passwordEncoder;
-    private final RoleService roleService;  // ← Внедряем RoleService для работы с ролями
+    private final RoleService roleService;
 
     public UserServiceImpl(UserDao userDao,
                            PasswordEncoder passwordEncoder,
@@ -53,8 +54,8 @@ public class UserServiceImpl implements UserService {
         // Кодируем пароль
         user.setPassword(passwordEncoder.encode(user.getPassword()));
 
-        // Получаем управляемые сущности ролей через RoleService (делегирование!)
-        Set<Role> managedRoles = getManagedRoles(user.getRoles());
+        // Получаем ID ролей из присланных объектов
+        Set<Role> managedRoles = getManagedRolesByIds(user.getRoles());
         user.setRoles(managedRoles);
 
         userDao.save(user);
@@ -71,57 +72,42 @@ public class UserServiceImpl implements UserService {
             throw new RuntimeException("Email already exists");
         }
 
-        // Обновляем поля одной операцией
-        updateExistingUser(existingUser, user);
+        // Обновляем поля
+        existingUser.setFirstName(user.getFirstName());
+        existingUser.setLastName(user.getLastName());
+        existingUser.setAge(user.getAge());
+        existingUser.setEmail(user.getEmail());
+
+        // Пароль обновляем только если он передан
+        if (user.getPassword() != null && !user.getPassword().isEmpty()) {
+            existingUser.setPassword(passwordEncoder.encode(user.getPassword()));
+        }
+
+        // Роли обновляем по ID
+        if (user.getRoles() != null && !user.getRoles().isEmpty()) {
+            Set<Role> managedRoles = getManagedRolesByIds(user.getRoles());
+            existingUser.setRoles(managedRoles);
+        }
 
         userDao.update(existingUser);
         return existingUser;
     }
 
     /**
-     * Метод для обновления полей одной операцией (вместо множества сеттеров)
+     * Получаем управляемые роли по ID (не по имени!)
      */
-    private void updateExistingUser(User existingUser, User newUser) {
-        // Копируем все поля одной группой (логически это одна операция)
-        existingUser.setFirstName(newUser.getFirstName());
-        existingUser.setLastName(newUser.getLastName());
-        existingUser.setAge(newUser.getAge());
-        existingUser.setEmail(newUser.getEmail());
-
-        // Пароль обновляем только если он передан
-        if (newUser.getPassword() != null && !newUser.getPassword().isEmpty()) {
-            existingUser.setPassword(passwordEncoder.encode(newUser.getPassword()));
-        }
-
-        // Роли обновляем через RoleService
-        if (newUser.getRoles() != null && !newUser.getRoles().isEmpty()) {
-            Set<Role> managedRoles = getManagedRoles(newUser.getRoles());
-            existingUser.setRoles(managedRoles);
-        }
-    }
-
-    /**
-     * Делегируем получение управляемых ролей RoleService
-     * (логика работы с ролями вынесена в отдельный сервис)
-     */
-    private Set<Role> getManagedRoles(Set<Role> roles) {
-        Set<Role> managedRoles = new HashSet<>();
-        for (Role role : roles) {
-            // RoleService отвечает за поиск ролей!
-            Role managedRole = roleService.findByName(role.getName());
-            managedRoles.add(managedRole);
-        }
-        return managedRoles;
-    }
-
-    /**
-     * Делегируем получение ролей по ID RoleService
-     */
-    private Set<Role> getRolesByIds(Set<Long> roleIds) {
-        if (roleIds == null || roleIds.isEmpty()) {
+    private Set<Role> getManagedRolesByIds(Set<Role> roles) {
+        if (roles == null || roles.isEmpty()) {
             return new HashSet<>();
         }
-        // RoleService отвечает за поиск ролей по ID!
+
+        // Собираем все ID ролей
+        Set<Long> roleIds = roles.stream()
+                .map(Role::getId)
+                .filter(id -> id != null)
+                .collect(Collectors.toSet());
+
+        // Загружаем роли по ID через RoleService
         return roleService.findByIds(roleIds);
     }
 
@@ -142,7 +128,7 @@ public class UserServiceImpl implements UserService {
                            String email, String password, Set<Long> roleIds) {
         User user = new User(firstName, lastName, age, email, password);
 
-        // Делегируем получение ролей отдельному методу, который использует RoleService
+        // Получаем роли по ID
         Set<Role> roles = getRolesByIds(roleIds);
         user.setRoles(roles);
 
@@ -155,7 +141,6 @@ public class UserServiceImpl implements UserService {
                            String email, String password, Set<Long> roleIds) {
         User existingUser = findById(id);
 
-        // Обновляем поля одной операцией
         existingUser.setFirstName(firstName);
         existingUser.setLastName(lastName);
         existingUser.setAge(age);
@@ -165,11 +150,19 @@ public class UserServiceImpl implements UserService {
             existingUser.setPassword(passwordEncoder.encode(password));
         }
 
-        // Делегируем получение ролей RoleService
         Set<Role> roles = getRolesByIds(roleIds);
         existingUser.setRoles(roles);
 
-        // Сохраняем
         userDao.update(existingUser);
+    }
+
+    /**
+     * Получаем роли по ID
+     */
+    private Set<Role> getRolesByIds(Set<Long> roleIds) {
+        if (roleIds == null || roleIds.isEmpty()) {
+            return new HashSet<>();
+        }
+        return roleService.findByIds(roleIds);
     }
 }
